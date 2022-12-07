@@ -1,0 +1,23 @@
+include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Microsoft/nuget_install.cmake)
+
+set(GAL_WEBVIEW_WEBVIEW2_VERSION 1.0.864.35)
+set(GAL_WEBVIEW_WIL_VERSION 1.0.210204.1)
+
+set(GAL_WEBVIEW_WEBVIEW2_PATH ${CMAKE_BINARY_DIR}/packages/Microsoft.Web.WebView2.${GAL_WEBVIEW_WEBVIEW2_VERSION}/build/native)
+set(GAL_WEBVIEW_WIL_PATH ${CMAKE_BINARY_DIR}/packages/Microsoft.Windows.ImplementationLibrary.${GAL_WEBVIEW_WIL_VERSION})
+
+option(WEBVIEW_STATIC_WEBVIEW2 "Statically link the WebView2 loader library" OFF)
+
+nuget_install(WebView2 ${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Microsoft/WebView2.config.in)
+list(APPEND GAL_WEBVIEW_HEADERS ${GAL_WEBVIEW_WEBVIEW2_PATH}/include ${GAL_WEBVIEW_WIL_PATH}/include)
+
+if(WEBVIEW_STATIC_WEBVIEW2)
+	list(APPEND GAL_WEBVIEW_LIBS ${GAL_WEBVIEW_WEBVIEW2_PATH}/x64/WebView2LoaderStatic.lib)
+else()
+	list(APPEND GAL_WEBVIEW_LIBS ${GAL_WEBVIEW_WEBVIEW2_PATH}/x64/WebView2Loader.dll.lib)
+	configure_file(
+			${GAL_WEBVIEW_WEBVIEW2_PATH}/x64/WebView2Loader.dll
+			${CMAKE_BINARY_DIR}/WebView2Loader.dll
+			COPYONLY
+	)
+endif(WEBVIEW_STATIC_WEBVIEW2)

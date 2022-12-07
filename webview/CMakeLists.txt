@@ -1,5 +1,5 @@
 project(
-		webview-impl
+		WebView
 		LANGUAGES CXX
 )
 
@@ -20,7 +20,7 @@ add_library(
 )
 
 add_library(
-		gal::webview
+		gal::WebView
 		ALIAS
 		${PROJECT_NAME}
 )
@@ -30,6 +30,35 @@ target_include_directories(
 	PUBLIC
 	
 	${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+set(GAL_WEBVIEW_HEADERS)
+set(GAL_WEBVIEW_LIBS)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	# windows & msvc
+	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Microsoft/WebView2.cmake)
+else()
+	# todo
+endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+
+message(VERBOSE "======================================")
+foreach(EXTRA_HEADER IN LISTS GAL_WEBVIEW_HEADERS)
+	message(VERBOSE "extra header directory: ${EXTRA_HEADER}")
+endforeach()
+foreach(EXTRA_LIB IN LISTS GAL_WEBVIEW_LIBS)
+	message(VERBOSE "extra library: ${EXTRA_LIB}")
+endforeach()
+message(VERBOSE "======================================")
+
+target_include_directories(
+		${PROJECT_NAME}
+		PUBLIC ${GAL_WEBVIEW_HEADERS}
+)
+
+target_link_libraries(
+		${PROJECT_NAME}
+		PRIVATE ${GAL_WEBVIEW_LIBS}
 )
 
 target_compile_definitions(

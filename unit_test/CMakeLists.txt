@@ -1,5 +1,5 @@
 project(
-		CMakeTemplateProject-unit-test
+		WebView-unit-test
 		LANGUAGES CXX
 )
 
@@ -24,7 +24,7 @@ CPM_link_libraries_LINK()
 target_link_libraries(
 		${PROJECT_NAME}
 		PRIVATE
-		gal::webview
+		gal::WebView
 )
 
 set_compile_options_private(${PROJECT_NAME})
