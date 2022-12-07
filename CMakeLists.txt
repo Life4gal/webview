@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required(VERSION 3.20)
 
-set(PROJECT_NAME_PREFIX "CMakeTemplateProject_")
+set(PROJECT_NAME_PREFIX "GAL_WEBVIEW_")
 
 set(
 		${PROJECT_NAME_PREFIX}MAJOR_VERSION
@@ -9,21 +9,21 @@ set(
 
 set(
 		${PROJECT_NAME_PREFIX}MINOR_VERSION
-		1
+		0
 )
 
 set(
 		${PROJECT_NAME_PREFIX}PATCH_VERSION
-		0
+		1
 )
 
 set(${PROJECT_NAME_PREFIX}VERSION ${${PROJECT_NAME_PREFIX}MAJOR_VERSION}.${${PROJECT_NAME_PREFIX}MINOR_VERSION}.${${PROJECT_NAME_PREFIX}PATCH_VERSION})
 
 project(
-		CMakeTemplateProject
+		webview
 		VERSION ${${PROJECT_NAME_PREFIX}VERSION}
-		DESCRIPTION "CMake Template Project"
-		HOMEPAGE_URL "https://github.com/Life4gal/CMakeTemplateProject"
+		DESCRIPTION "GAL WEBVIEW"
+		HOMEPAGE_URL "https://github.com/Life4gal/webview"
 		LANGUAGES CXX
 )
 

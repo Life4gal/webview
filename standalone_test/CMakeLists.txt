@@ -26,7 +26,7 @@ target_include_directories(
 target_link_libraries(
 		${PROJECT_NAME}
 		PRIVATE
-		gal::CTP
+		gal::webview
 )
 
 set_compile_options_private(${PROJECT_NAME})

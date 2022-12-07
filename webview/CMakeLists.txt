@@ -1,40 +1,40 @@
 project(
-		CMakeTemplateProject-impl
+		webview-impl
 		LANGUAGES CXX
 )
 
 file(
-	GLOB_RECURSE  
-	${PROJECT_NAME}_SOURCE 
-	CONFIGURE_DEPENDS 
+		GLOB_RECURSE
+		${PROJECT_NAME}_SOURCE
+		CONFIGURE_DEPENDS
 
-	${PROJECT_SOURCE_DIR}/src/*.cpp
+		${PROJECT_SOURCE_DIR}/src/*.cpp
 )
 
 add_library(
-	${PROJECT_NAME}
-	# todo
-	STATIC
+		${PROJECT_NAME}
+		# todo
+		STATIC
 
-	${${PROJECT_NAME}_SOURCE}
+		${${PROJECT_NAME}_SOURCE}
+)
+
+add_library(
+		gal::webview
+		ALIAS
+		${PROJECT_NAME}
 )
 
 target_include_directories(
 	${PROJECT_NAME}
-	PUBLIC 
+	PUBLIC
 	
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-add_library(
-	gal::CTP
-	ALIAS
-	${PROJECT_NAME}
-)
-
 target_compile_definitions(
 	${PROJECT_NAME}
-	PUBLIC 
+	PUBLIC
 
 	${PROJECT_NAME_PREFIX}MAJOR_VERSION=${${PROJECT_NAME_PREFIX}MAJOR_VERSION}
 	${PROJECT_NAME_PREFIX}MINOR_VERSION=${${PROJECT_NAME_PREFIX}MINOR_VERSION}
@@ -53,12 +53,4 @@ target_compile_definitions(
 	# TODO: MORE COMPILERS HERE.
 )
 
-CPM_link_libraries_DECL()
-include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/fmtlib.cmake)
-include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/spdlog.cmake)
-include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/eve.cmake)
-include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/bdwgc.cmake)
-CPM_link_libraries_LINK()
-
 set_compile_options_private(${PROJECT_NAME})
-turn_off_warning(${PROJECT_NAME})
