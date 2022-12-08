@@ -14,7 +14,7 @@ namespace gal::web_view
 {
 #ifdef GAL_WEBVIEW_COMPILER_MSVC
 
-	using web_view = BasicWebView<impl::WebViewWindows>;
+	using web_view = impl::WebViewWindows;
 
 #else
 

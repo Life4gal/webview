@@ -17,7 +17,8 @@ else()
 	list(APPEND GAL_WEBVIEW_LIBS ${GAL_WEBVIEW_WEBVIEW2_PATH}/x64/WebView2Loader.dll.lib)
 	configure_file(
 			${GAL_WEBVIEW_WEBVIEW2_PATH}/x64/WebView2Loader.dll
-			${CMAKE_BINARY_DIR}/WebView2Loader.dll
+			#${CMAKE_BINARY_DIR}/WebView2Loader.dll
+			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/WebView2Loader.dll
 			COPYONLY
 	)
 endif(WEBVIEW_STATIC_WEBVIEW2)

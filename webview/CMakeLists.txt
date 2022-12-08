@@ -32,12 +32,24 @@ target_include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# todo: method name?
+target_compile_definitions(
+		${PROJECT_NAME}
+		PUBLIC
+		GAL_WEBVIEW_METHOD_NAME="native_call" # window.external.'GAL_WEBVIEW_METHOD_NAME'(arg) or window.chrome.webview.postMessage(arg)
+)
+
 set(GAL_WEBVIEW_HEADERS)
 set(GAL_WEBVIEW_LIBS)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	# windows & msvc
 	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Microsoft/WebView2.cmake)
+	target_compile_definitions(
+		${PROJECT_NAME}
+		PUBLIC
+		UNICODE
+	)
 else()
 	# todo
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
