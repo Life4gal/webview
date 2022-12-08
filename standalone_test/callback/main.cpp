@@ -1,6 +1,8 @@
 #include <charconv>
 #include <filesystem>
 #include <fstream>
+#include <ranges>
+#include <vector>
 #include <webview/webview.hpp>
 
 template<typename FunctionType>
@@ -85,8 +87,9 @@ auto build_html() -> bool
 			"\n"};
 
 	std::filesystem::path html_path{CALLBACK_TEST_HTML_PATH};
-	std::ofstream		  file{html_path};
+	std::filesystem::create_directories(html_path.parent_path());
 
+	std::ofstream file{html_path, std::ios::out | std::ios::trunc};
 	if (!file.is_open())
 	{
 		return false;

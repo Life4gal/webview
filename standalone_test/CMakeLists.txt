@@ -36,5 +36,5 @@ add_executable(
 	${PROJECT_NAME}-callback
 	callback/main.cpp
 )
-target_compile_definitions(${PROJECT_NAME}-callback PUBLIC CALLBACK_TEST_HTML_PATH="${PROJECT_SOURCE_DIR}/callback/callback.html")
+target_compile_definitions(${PROJECT_NAME}-callback PUBLIC CALLBACK_TEST_HTML_PATH="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/callback/callback.html")
 setup_project(${PROJECT_NAME}-callback ${PROJECT_SOURCE_DIR}/callback/callback.html)
