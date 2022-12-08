@@ -3,42 +3,38 @@ project(
 		LANGUAGES CXX
 )
 
-file(
-		GLOB_RECURSE
-		${PROJECT_NAME}_SOURCE
-		CONFIGURE_DEPENDS
+function(setup_project project_name html_path)
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+		# windows & msvc
+		# set(CMAKE_WIN32_EXECUTABLE ${WIN32})
+		set_target_properties(
+				${project_name}
+				PROPERTIES
+				WIN32_EXECUTABLE ${WIN32}
+		)
+	else()
+	endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
-		src/*.cpp
-)
-
-add_executable(
-		${PROJECT_NAME}
-		
-		${${PROJECT_NAME}_SOURCE}
-)
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	# windows & msvc
-#	set(CMAKE_WIN32_EXECUTABLE ${WIN32})
-	set_target_properties(
-			${PROJECT_NAME}
-			PROPERTIES
-			WIN32_EXECUTABLE ${WIN32}
-	)
-else()
-endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-
-target_include_directories(
-		${PROJECT_NAME}
-		PUBLIC
-		${PROJECT_SOURCE_DIR}/include
-)
-
-target_link_libraries(
-		${PROJECT_NAME}
+	target_link_libraries(
+		${project_name}
 		PRIVATE
 		gal::WebView
-)
+	)
 
-set_compile_options_private(${PROJECT_NAME})
-turn_off_warning(${PROJECT_NAME})
+	#add_custom_command(
+	#	TARGET ${project_name} POST_BUILD
+	#	COMMAND ${CMAKE_COMMAND} -E copy
+	#	${html_path}
+	#	"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"
+	#)
+
+	set_compile_options_private(${project_name})
+	turn_off_warning(${project_name})
+endfunction(setup_project)
+
+add_executable(
+	${PROJECT_NAME}-callback
+	callback/main.cpp
+)
+target_compile_definitions(${PROJECT_NAME}-callback PUBLIC CALLBACK_TEST_HTML_PATH="${PROJECT_SOURCE_DIR}/callback/callback.html")
+setup_project(${PROJECT_NAME}-callback ${PROJECT_SOURCE_DIR}/callback/callback.html)
