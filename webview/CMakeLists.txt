@@ -40,7 +40,9 @@ target_compile_definitions(
 )
 
 set(GAL_WEBVIEW_HEADERS)
+set(GAL_WEBVIEW_LINK_DIRS)
 set(GAL_WEBVIEW_LIBS)
+set(GAL_WEBVIEW_DEFINITIONS)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	# windows & msvc
@@ -50,6 +52,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		PUBLIC
 		UNICODE
 	)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	# linux & gcc
+	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Linux/gtk3.cmake)
+	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Linux/webkit2gtk4.cmake)
 else()
 	# todo
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -58,8 +64,14 @@ message(VERBOSE "======================================")
 foreach(EXTRA_HEADER IN LISTS GAL_WEBVIEW_HEADERS)
 	message(VERBOSE "extra header directory: ${EXTRA_HEADER}")
 endforeach()
+foreach(EXTRA_LINK_DIR IN LISTS GAL_WEBVIEW_LINK_DIRS)
+	message(VERBOSE "extra link directory: ${EXTRA_LINK_DIR}")
+endforeach()
 foreach(EXTRA_LIB IN LISTS GAL_WEBVIEW_LIBS)
 	message(VERBOSE "extra library: ${EXTRA_LIB}")
+endforeach()
+foreach(EXTRA_DEFINITION IN LISTS GAL_WEBVIEW_DEFINITIONS)
+	message(VERBOSE "extra definition: ${EXTRA_DEFINITION}")
 endforeach()
 message(VERBOSE "======================================")
 
@@ -68,9 +80,19 @@ target_include_directories(
 		PUBLIC ${GAL_WEBVIEW_HEADERS}
 )
 
+target_link_directories(
+	${PROJECT_NAME}
+	PRIVATE ${GAL_WEBVIEW_LINK_DIRS}
+)
+
 target_link_libraries(
 		${PROJECT_NAME}
 		PRIVATE ${GAL_WEBVIEW_LIBS}
+)
+
+target_compile_options(
+	${PROJECT_NAME}
+	PRIVATE ${GAL_WEBVIEW_DEFINITIONS}
 )
 
 target_compile_definitions(
