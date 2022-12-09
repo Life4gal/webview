@@ -1,8 +1,12 @@
 #pragma once
 
-#ifdef GAL_WEBVIEW_COMPILER_MSVC
+#if defined(GAL_WEBVIEW_COMPILER_MSVC)
 
 	#include <webview/impl/web_view_windows.hpp>
+
+#elif defined(GAL_WEBVIEW_COMPILER_GNU)
+
+#include <webview/impl/web_view_linux_v2.hpp>
 
 #else
 
@@ -12,13 +16,17 @@
 
 namespace gal::web_view
 {
-#ifdef GAL_WEBVIEW_COMPILER_MSVC
+	#if defined(GAL_WEBVIEW_COMPILER_MSVC)
 
 	using web_view = impl::WebViewWindows;
 
-#else
+	#elif defined(GAL_WEBVIEW_COMPILER_GNU)
+
+	using web_view = impl::WebViewLinux;
+
+	#else
 
 	// todo
 
-#endif
+	#endif
 }// namespace gal::web_view
