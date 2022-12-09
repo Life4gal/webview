@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef GAL_WEBVIEW_COMPILER_MSVC
+
 #ifndef UNICODE
 	#warning "Currently only supports unicode on Windows platform"
 #define UNICODE
@@ -225,3 +227,5 @@ namespace gal::web_view
 		};
 	}// namespace impl
 }    // namespace gal::web_view
+
+#endif

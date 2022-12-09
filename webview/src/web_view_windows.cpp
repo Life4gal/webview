@@ -1,3 +1,5 @@
+#ifdef GAL_WEBVIEW_COMPILER_MSVC
+
 #include <shellscalingapi.h>
 #include <windows.h>
 #include <wrl.h>
@@ -574,3 +576,5 @@ namespace gal::web_view::impl
 		}
 	}
 }// namespace gal::web_view::impl
+
+#endif
