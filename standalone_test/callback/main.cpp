@@ -1,8 +1,6 @@
 #include <charconv>
 #include <filesystem>
 #include <fstream>
-#include <ranges>
-#include <vector>
 #include <webview/webview.hpp>
 
 template<typename FunctionType>
@@ -14,7 +12,7 @@ struct y_combinator
 
 	template<typename... Args>
 	constexpr auto operator()(Args&&... args) const
-			noexcept(std::is_nothrow_invocable_v<function_type, decltype(*this), Args...>) -> decltype(auto)
+		noexcept(std::is_nothrow_invocable_v<function_type, decltype(*this), Args...>) -> decltype(auto)
 	{
 		// we pass ourselves to f, then the arguments.
 		// the lambda should take the first argument as `auto&& recurse` or similar.
@@ -75,7 +73,10 @@ auto build_html() -> bool
 			"           input.value = 0;\n"
 			"       }\n"
 			"\n"
+			"       // Windows \n"
 			"       // window.chrome.webview.postMessage(input.value);\n"
+			"       // Linux\n"
+			"       // window.webkit.messageHandlers.external.postMessage(input.value);\n"
 			"       window.external." GAL_WEBVIEW_METHOD_NAME
 			"(input.value);\n"
 			"   }\n"
@@ -90,10 +91,7 @@ auto build_html() -> bool
 	std::filesystem::create_directories(html_path.parent_path());
 
 	std::ofstream file{html_path, std::ios::out | std::ios::trunc};
-	if (!file.is_open())
-	{
-		return false;
-	}
+	if (!file.is_open()) { return false; }
 
 	file.write(head_part.data(), head_part.size());
 	file.write(script_part.data(), script_part.size());
@@ -102,7 +100,7 @@ auto build_html() -> bool
 	return true;
 }
 
-#if GAL_WEBVIEW_COMPILER_MSVC
+#ifdef GAL_WEBVIEW_COMPILER_MSVC
 auto __stdcall WinMain(
 		_In_ const HINSTANCE /* hInstance */,
 		_In_opt_   HINSTANCE /* hPrevInstance */,
@@ -110,8 +108,11 @@ auto __stdcall WinMain(
 		_In_ int /* nShowCmd */
 		) -> int
 #else
-auto main(int argc, char* argv[]) -> int
-#endif
+auto main(
+		int /* argc */,
+		char* /* argv */[]
+		) -> int
+	#endif
 {
 	if (!build_html())
 	{
@@ -119,34 +120,35 @@ auto main(int argc, char* argv[]) -> int
 		return -1;
 	}
 
-	gal::web_view::web_view web_view{};
+	gal::web_view::web_view web_view{
+			{
+					.window_width = 600,
+					.window_height = 800,
+					.window_title = "hello web view",
+					.window_is_fixed = false,
+					.window_is_fullscreen = false,
+					.web_view_use_dev_tools = true,
+					.index_url = {}
+			}
+	};
 
-	web_view.initialize(
-			800,
-			600,
-			"hello web view",
-			true,
-			false,
-			true);
+	web_view.navigate(gal::web_view::web_view::string_view_type{CALLBACK_TEST_HTML_PATH});
 
-	// const std::string url{"file:///" + (std::filesystem::current_path() / "callback.html").string()};
-	// if (!std::filesystem::exists(url))
-	// {
-	// 	// todo
-	// 	return -2;
-	// }
-
-	web_view.redirect_to(CALLBACK_TEST_HTML_PATH);
-
-	web_view.register_callback(
+	web_view.register_javascript_callback(
 			[](gal::web_view::web_view& wv, std::string&& arg) -> void
 			{
-				constexpr auto factorial = y_combinator{
+				constexpr auto  factorial = y_combinator{
 						[](auto self, std::size_t n) -> std::size_t
 						{
 							if (n <= 1) { return 1; }
 							return n * self(n - 1);
 						}};
+
+				if (arg == "shutdown")
+				{
+					wv.shutdown();
+					return;
+				}
 
 				std::size_t num;
 				if (const auto [ptr, ec] = std::from_chars(arg.c_str(), arg.c_str() + arg.size(), num); ec != std::errc{} || ptr != arg.c_str() + arg.size())
@@ -161,13 +163,9 @@ auto main(int argc, char* argv[]) -> int
 				}
 			});
 
-	if (!web_view.run())
-	{
-		// todo
-		return -3;
-	}
+	if (web_view.service_start() != gal::web_view::ServiceStartResult::SUCCESS) { return -2; }
 
-	while (web_view.is_running()) {}
+	while (web_view.iteration()) { }
 
 	return 0;
 }
