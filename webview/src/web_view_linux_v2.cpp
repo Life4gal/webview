@@ -16,12 +16,24 @@ namespace gal::web_view::impl
 		  window_is_fullscreen_{args.window_is_fullscreen},
 		  web_view_use_dev_tools_{args.web_view_use_dev_tools},
 		  current_javascript_runnable_{false},
+		  service_state_{ServiceStateResult::UNINITIALIZED},
 		  current_javascript_running_{false},
 		  current_url_{args.index_url.value_or(url_type{construct_args_type::default_url})},
 		  inject_javascript_code_{"window.external={" GAL_WEBVIEW_METHOD_NAME ":arg=>window.webkit.messageHandlers.external.postMessage(arg)};"},
-		  service_state_{ServiceStateResult::UNINITIALIZED},
 		  gtk_window_{nullptr},
 		  gtk_web_view_{nullptr} { }
+
+	auto WebViewLinux::do_set_window_title(string_type&& title) noexcept -> void
+	{
+		if (service_state() != ServiceStateResult::RUNNING) { window_title_.swap(title); }
+		else { gtk_window_set_title(GTK_WINDOW(gtk_window_), title.data()); }
+	}
+
+	auto WebViewLinux::do_set_window_title(const string_view_type title) -> void
+	{
+		if (service_state() != ServiceStateResult::RUNNING) { window_title_ = title; }
+		else { gtk_window_set_title(GTK_WINDOW(gtk_window_), title.data()); }
+	}
 
 	auto WebViewLinux::do_set_window_fullscreen(const bool to_fullscreen) -> set_window_fullscreen_result_type
 	{

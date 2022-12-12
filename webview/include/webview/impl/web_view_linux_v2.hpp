@@ -61,13 +61,13 @@ namespace gal::web_view
 			bool window_is_fullscreen_;
 			bool web_view_use_dev_tools_;
 
-			bool					  current_javascript_runnable_;
+			bool                      current_javascript_runnable_;
+			service_state_result_type service_state_;
+
 			bool                     current_javascript_running_;
 			url_type                 current_url_;
 			javascript_callback_type current_callback_;
 			javascript_code_type     inject_javascript_code_;
-
-			service_state_result_type service_state_;
 
 			_GtkWidget* gtk_window_;
 			_GtkWidget* gtk_web_view_;
@@ -75,9 +75,9 @@ namespace gal::web_view
 			auto do_register_javascript_callback(javascript_callback_type&& callback) noexcept
 				-> register_javascript_callback_result_type { current_callback_.swap(callback); }
 
-			auto do_set_window_title(string_type&& title) noexcept -> void { window_title_.swap(title); }
+			auto						 do_set_window_title(string_type&& title) noexcept -> void;
 
-			auto do_set_window_title(const string_view_type title) -> void { window_title_ = title; }
+			auto						 do_set_window_title(string_view_type title) -> void;
 
 			auto do_set_window_fullscreen(bool to_fullscreen) -> set_window_fullscreen_result_type;
 
