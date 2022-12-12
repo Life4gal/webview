@@ -36,7 +36,9 @@ target_include_directories(
 target_compile_definitions(
 		${PROJECT_NAME}
 		PUBLIC
-		GAL_WEBVIEW_METHOD_NAME="native_call" # window.external.'GAL_WEBVIEW_METHOD_NAME'(arg) or window.chrome.webview.postMessage(arg)
+		GAL_WEBVIEW_METHOD_NAME="native_call"
+		#$<$<CXX_COMPILER_ID:MSVC>:L"native_call">
+		#$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:"native_call">
 )
 
 set(GAL_WEBVIEW_HEADERS)
