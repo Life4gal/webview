@@ -70,7 +70,7 @@ namespace gal::web_view::impl
 					bool             window_is_fixed        = false,
 					bool             window_is_fullscreen   = false,
 					bool             web_view_use_dev_tools = false,
-					bool             is_temp_environment    = true,
+					bool             is_temp_environment    = false,
 					string_type&&    index_url              = string_type{default_index_url});
 
 		private:

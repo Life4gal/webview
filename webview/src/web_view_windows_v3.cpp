@@ -37,8 +37,8 @@ namespace
 	[[nodiscard]] auto to_wchar_string(const StringView& string) -> std::basic_string<raw_char_type> requires(!std::is_same_v<typename StringView::value_type, raw_char_type>)
 	{
 		// convert required
-		if constexpr (std::is_same_v<raw_char_type, wchar_t>) { return std::filesystem::path{string}.string(); }
-		else { return std::filesystem::path{string}.wstring(); }
+		if constexpr (std::is_same_v<raw_char_type, wchar_t>) { return std::filesystem::path{string}.wstring(); }
+		else { return std::filesystem::path{string}.string(); }
 	}
 
 	template<typename RawString>
@@ -125,7 +125,7 @@ namespace
 		{
 			case WM_SIZE:
 			{
-				if (web_view && web_view->service_state() == web_view_windows::ServiceStateResult::RUNNING) { web_view->resize(); }
+				if (web_view && web_view->service_state() == gal::web_view::ServiceStateResult::RUNNING) { web_view->resize(); }
 				return DefWindowProc(window, msg, w_param, l_param);
 			}
 			case WM_DPICHANGED:
@@ -462,17 +462,27 @@ namespace gal::web_view::impl
 					// Get AppData path
 					std::basic_string<raw_char_type> app_data_path{};
 					app_data_path.resize(MAX_PATH);
-					if (const auto read_length = GetEnvironmentVariable(TEXT("APPDATA"), app_data_path.data(), app_data_path.size());
-						read_length != 0) { app_data_path.shrink_to_fit(); }
+					if (const auto read_length = GetEnvironmentVariable(TEXT("APPDATA"), app_data_path.data(), static_cast<DWORD>(app_data_path.size()));
+						read_length != 0)
+					{
+						app_data_path.resize(read_length);
+						// app_data_path.shrink_to_fit();
+					}
 
-					std::filesystem::path path{app_data_path};
+					std::filesystem::path path{std::move(app_data_path)};
 					assert(std::filesystem::exists(path) && "Invalid app data path!");
 					return path;
 				}();
 
 				// Get executable file name
-				raw_char_type exe_name[MAX_PATH];
-				GetModuleFileName(nullptr, exe_name, MAX_PATH);
+				std::basic_string<raw_char_type> exe_name{};
+				exe_name.resize(MAX_PATH);
+				if (const auto read_length = GetModuleFileName(nullptr, exe_name.data(), MAX_PATH);
+					read_length != 0)
+				{
+					exe_name.resize(read_length);
+					// exe_name.shrink_to_fit();
+				}
 
 				return base_path / std::filesystem::path{exe_name}.stem();
 			}();
