@@ -74,23 +74,23 @@ namespace gal::web_view::impl
 					string_type&&    index_url              = string_type{default_index_url});
 
 		private:
-			auto do_set_window_title(string_view_type title) -> void;
+			auto do_set_window_title(string_view_type title) const -> void;
 
 			auto do_set_window_fullscreen(bool to_fullscreen) -> void;
 
-			auto do_navigate(string_view_type target_url) -> NavigateResult;
+			auto do_navigate(string_view_type target_url) const -> NavigateResult;
 
 			auto do_eval(string_view_type javascript_code) const -> void;
 
 			auto do_service_start() -> ServiceStartResult;
 
-			auto do_iteration() -> bool;
+			auto do_iteration() const -> bool;
 
-			auto do_shutdown() -> void;
+			auto do_shutdown() const -> void;
 
 		public:
 			// INTERNAL USE ONLY, DO NOT USE IT!!!
-			auto resize() -> void;
+			auto resize() const -> void;
 
 			// INTERNAL USE ONLY, DO NOT USE IT!!!
 			auto set_dpi(dpi_type new_dpi, const tagRECT& rect) -> void;

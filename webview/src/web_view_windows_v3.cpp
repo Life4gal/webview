@@ -215,7 +215,7 @@ namespace gal::web_view::impl
 
 			window_ = CreateWindow(
 					TEXT("webview_windows"),
-					reinterpret_cast<raw_string_pointer>(window_title_.c_str()),
+					to_wchar_string(window_title_).data(),
 					WS_OVERLAPPEDWINDOW,
 					CW_USEDEFAULT,
 					CW_USEDEFAULT,
@@ -260,8 +260,7 @@ namespace gal::web_view::impl
 			service_state_ = ServiceStateResult::INITIALIZED;
 		}
 
-		// ReSharper disable once CppMemberFunctionMayBeConst
-		auto WebViewWindows::do_set_window_title(const string_view_type title) -> void
+		auto WebViewWindows::do_set_window_title(const string_view_type title) const -> void
 		{
 			SetWindowText(window_, to_wchar_string(title).data());
 		}
@@ -321,8 +320,7 @@ namespace gal::web_view::impl
 			}
 		}
 
-		// ReSharper disable once CppMemberFunctionMayBeConst
-		auto WebViewWindows::do_navigate(const string_view_type target_url) -> NavigateResult
+		auto WebViewWindows::do_navigate(const string_view_type target_url) const -> NavigateResult
 		{
 			if (FAILED(web_view_window_->Navigate(to_wchar_string(target_url).data())))
 			{
@@ -431,7 +429,7 @@ namespace gal::web_view::impl
 				if (window_is_fullscreen_) { do_set_window_fullscreen(true); }
 
 				// navigate to the pending url
-				do_navigate(current_url_);
+				(void)do_navigate(current_url_);
 
 				return S_OK;
 			};
@@ -501,8 +499,7 @@ namespace gal::web_view::impl
 			return ServiceStartResult::SUCCESS;
 		}
 
-		// ReSharper disable once CppMemberFunctionMayBeConst
-		auto WebViewWindows::do_iteration() -> bool
+		auto WebViewWindows::do_iteration() const -> bool
 		{
 			(void)this;
 			MSG        msg;
@@ -515,16 +512,14 @@ namespace gal::web_view::impl
 			return is_running;
 		}
 
-		// ReSharper disable once CppMemberFunctionMayBeConst
-		auto WebViewWindows::do_shutdown() -> void
+		auto WebViewWindows::do_shutdown() const -> void
 		{
 			(void)this;
 			PostQuitMessage(WM_QUIT);
 			CoUninitialize();
 		}
 
-		// ReSharper disable once CppMemberFunctionMayBeConst
-		auto WebViewWindows::resize() -> void
+		auto WebViewWindows::resize() const -> void
 		{
 			RECT rect;
 			GetClientRect(window_, &rect);
