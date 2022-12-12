@@ -25,6 +25,8 @@ y_combinator(F) -> y_combinator<std::decay_t<F>>;
 
 #define JS_SEND_ARG_METHOD_NAME "to_native"
 #define JS_RECEIVE_RESULT_METHOD_NAME "from_native"
+#define JS_SHUTDOWN_METHOD_NAME "shutdown"
+
 
 auto build_html() -> bool
 {
@@ -87,7 +89,7 @@ auto build_html() -> bool
 			"   }"
 			"\n"};
 
-	std::filesystem::path html_path{CALLBACK_TEST_HTML_PATH};
+	const std::filesystem::path html_path{CALLBACK_TEST_HTML_PATH};
 	std::filesystem::create_directories(html_path.parent_path());
 
 	std::ofstream file{html_path, std::ios::out | std::ios::trunc};
@@ -103,11 +105,11 @@ auto build_html() -> bool
 #ifdef GAL_WEBVIEW_COMPILER_MSVC
 auto __stdcall WinMain(
 		_In_ const HINSTANCE /* hInstance */,
-		_In_opt_   HINSTANCE /* hPrevInstance */,
-		_In_	   LPSTR /* lpCmdLine */,
-		_In_ int /* nShowCmd */
+		_In_opt_ HINSTANCE /* hPrevInstance */,
+		_In_ LPSTR /* lpCmdLine */,
+		_In_ int/* nShowCmd */
 		) -> int
-#else
+	#else
 auto main(
 		int /* argc */,
 		char* /* argv */[]
@@ -121,21 +123,21 @@ auto main(
 	}
 
 	gal::web_view::web_view web_view{
-			{
-					.window_width = 600,
-					.window_height = 800,
-					.window_title = "hello web view",
-					.window_is_fixed = false,
-					.window_is_fullscreen = false,
-					.web_view_use_dev_tools = true,
-					.index_url = {}
-			}
+			/*.window_width = */600,
+			                    /*.window_height = */ 800,
+			                    /*.window_title = */ "hello web view",
+			                    /*.window_is_fixed = */ false,
+			                    /*.window_is_fullscreen = */ false,
+			                    /*.web_view_use_dev_tools = */ true,
+			                    /*.index_url = */ {},
 	};
 
-	web_view.navigate(gal::web_view::web_view::string_view_type{CALLBACK_TEST_HTML_PATH});
+	gal::web_view::web_view::string_type target_url{"file:///"};
+	target_url.append(CALLBACK_TEST_HTML_PATH);
+	web_view.navigate(target_url);
 
 	web_view.register_javascript_callback(
-			[](gal::web_view::web_view& wv, std::string&& arg) -> void
+			[](gal::web_view::web_view& wv, gal::web_view::web_view::string_type&& arg) -> void
 			{
 				constexpr auto  factorial = y_combinator{
 						[](auto self, std::size_t n) -> std::size_t
@@ -144,21 +146,25 @@ auto main(
 							return n * self(n - 1);
 						}};
 
-				if (arg == "shutdown")
+				if (arg == JS_SHUTDOWN_METHOD_NAME)
 				{
 					wv.shutdown();
 					return;
 				}
 
 				std::size_t num;
-				if (const auto [ptr, ec] = std::from_chars(arg.c_str(), arg.c_str() + arg.size(), num); ec != std::errc{} || ptr != arg.c_str() + arg.size())
+				if (const auto [ptr, ec] = std::from_chars(
+							arg.c_str(),
+							arg.c_str() + arg.size(),
+							num);
+					ec != std::errc{} || ptr != arg.c_str() + arg.size())
 				{
-					const std::string js{JS_RECEIVE_RESULT_METHOD_NAME "(cannot eval '" + arg + "' for factorial!)"};
+					const gal::web_view::web_view::string_type js{JS_RECEIVE_RESULT_METHOD_NAME "(\"cannot eval '" + arg + "' for factorial!\")"};
 					wv.eval(js);
 				}
 				else
 				{
-					const std::string js{JS_RECEIVE_RESULT_METHOD_NAME "(" + std::to_string(factorial(num)) + ")"};
+					const gal::web_view::web_view::string_type js{JS_RECEIVE_RESULT_METHOD_NAME "(" + std::to_string(factorial(num)) + ")"};
 					wv.eval(js);
 				}
 			});

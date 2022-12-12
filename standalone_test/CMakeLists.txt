@@ -39,7 +39,7 @@ add_executable(
 target_compile_definitions(
 	${PROJECT_NAME}-callback 
 	PUBLIC 
-	CALLBACK_TEST_HTML_PATH="file:///${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/callback/callback.html"
+	CALLBACK_TEST_HTML_PATH="${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/callback/callback.html"
 	#$<$<CXX_COMPILER_ID:MSVC>:L"file:///${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/callback/callback.html">
 	#$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:"file:///${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/callback/callback.html">
 )
