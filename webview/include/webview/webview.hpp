@@ -1,18 +1,7 @@
 #pragma once
 
-#if defined(GAL_WEBVIEW_COMPILER_MSVC)
-
-	#include <webview/impl/web_view_windows.hpp>
-
-#elif defined(GAL_WEBVIEW_COMPILER_GNU)
-
-#include <webview/impl/web_view_linux_v2.hpp>
-
-#else
-
-// todo
-
-#endif
+#include <webview/impl/v3/web_view_linux_v3.hpp>
+#include <webview/impl/v3/web_view_windows_v3.hpp>
 
 namespace gal::web_view
 {
