@@ -1,25 +1,25 @@
 #ifdef GAL_WEBVIEW_COMPILER_MSVC
 
+#include <webview/impl/v2/web_view_windows_v2.hpp>
+
 #include <shellscalingapi.h>
 #include <windows.h>
 #include <wrl.h>
-
-#include <bit>
-#include <cassert>
 #include <filesystem>
 #include <memory>
 #include <type_traits>
-#include <webview/impl/web_view_windows.hpp>
+#include <bit>
+#include <cassert>
 
 namespace
 {
 	using web_view_windows = gal::web_view::impl::WebViewWindows;
-	using library_type	   = std::unique_ptr<std::remove_pointer_t<HMODULE>, decltype(&::FreeLibrary)>;
+	using library_type = std::unique_ptr<std::remove_pointer_t<HMODULE>, decltype(&::FreeLibrary)>;
 	using raw_string_pointer =
-			std::conditional_t<
-					std::is_same_v<std::remove_cvref_t<decltype(std::declval<decltype(TEXT(""))>()[0])>, char>,
-					LPCSTR,
-					LPCWSTR>;
+	std::conditional_t<
+		std::is_same_v<std::remove_cvref_t<decltype(std::declval<decltype(TEXT(""))>()[0])>, char>,
+		LPCSTR,
+		LPCWSTR>;
 
 	[[nodiscard]] auto load_library(const raw_string_pointer filename) -> library_type
 	{
@@ -80,8 +80,8 @@ namespace
 	}
 
 	auto CALLBACK WndProcedure(
-			const HWND	 window,
-			const UINT	 msg,
+			const HWND   window,
+			const UINT   msg,
 			const WPARAM w_param,
 			const LPARAM l_param) -> LRESULT
 	{
@@ -91,14 +91,14 @@ namespace
 		{
 			case WM_SIZE:
 			{
-				if (web_view && web_view->is_ready()) { web_view->resize(); }
+				if (web_view && web_view->service_state() == web_view_windows::service_state_result_type::RUNNING) { web_view->resize(); }
 				return DefWindowProc(window, msg, w_param, l_param);
 			}
 			case WM_DPICHANGED:
 			{
 				if (web_view)
 				{
-					const auto	current_dpi	 = HIWORD(w_param);
+					const auto  current_dpi  = HIWORD(w_param);
 					const auto& current_rect = *reinterpret_cast<RECT*>(l_param);// NOLINT(performance-no-int-to-ptr)
 					web_view->set_dpi(static_cast<web_view_windows::dpi_type>(current_dpi), current_rect);
 				}
@@ -109,10 +109,7 @@ namespace
 				if (web_view) { web_view->shutdown(); }
 				break;
 			}
-			default:
-			{
-				return DefWindowProc(window, msg, w_param, l_param);
-			}
+			default: { return DefWindowProc(window, msg, w_param, l_param); }
 		}
 
 		return 0;
@@ -121,48 +118,107 @@ namespace
 
 namespace gal::web_view::impl
 {
-	String::String(const char* pointer, const impl_type::size_type length)
-		: string_{std::filesystem::path{pointer, pointer + length}} {}
-
-	String::String(const char* pointer)
-		: string_{std::filesystem::path{pointer}} {}
-
-	auto WebViewWindows::do_initialize(
-			const size_type window_width,
-			const size_type window_height,
-			string_type&&	window_title,
-			const bool		is_window_resizable,
-			const bool		is_fullscreen,
-			const bool		is_dev_tools_enabled,
-			const bool		is_temp_environment) -> bool
+	WebViewWindows::WebViewWindows(WebViewConstructArgsWindows&& args)
+		: WebViewBase{std::move(args)},
+		  is_temp_environment_{args.is_temp_environment},
+		  dpi_{0},
+		  window_info_{},
+		  window_{nullptr}
 	{
-		is_dev_tools_enabled_  = is_dev_tools_enabled;
-		current_is_fullscreen_ = is_fullscreen;
-		is_temp_environment_   = is_temp_environment;
+		inject_javascript_code_ = TEXT("window.external." GAL_WEBVIEW_METHOD_NAME "=arg=>window.chrome.webview.postMessage(arg);");
 
-		return initialize_win32_windows(
-				window_width,
-				window_height,
-				std::move(window_title),
-				is_window_resizable);
+		HMODULE handle;
+		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, nullptr, &handle) == 0 || !handle)
+		{
+			// todo
+			MessageBox(nullptr, TEXT("Call to GetModuleHandleEx failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+			return;
+		}
+
+		// create a win32 window
+		const WNDCLASSEX window{
+				.cbSize = sizeof(WNDCLASSEX),
+				.style = 0,
+				.lpfnWndProc = WndProcedure,
+				.cbClsExtra = 0,
+				.cbWndExtra = 0,
+				.hInstance = handle,
+				.hIcon = LoadIcon(nullptr, IDI_APPLICATION),
+				.hCursor = LoadCursor(nullptr, IDC_ARROW),
+				.hbrBackground = reinterpret_cast<HBRUSH>((COLOR_WINDOW + 1)),// NOLINT(performance-no-int-to-ptr)
+				.lpszMenuName = nullptr,
+				.lpszClassName = TEXT("webview_windows"),
+				.hIconSm = LoadIcon(nullptr, IDI_APPLICATION)};
+
+		if (!RegisterClassEx(&window))
+		{
+			// todo
+			MessageBox(nullptr, TEXT("Call to RegisterClassEx failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+			return;
+		}
+
+		// Set default DPI awareness
+		set_dpi_awareness();
+
+		window_ = CreateWindow(
+				TEXT("webview_windows"),
+				window_title_.operator String::impl_type&().c_str(),
+				WS_OVERLAPPEDWINDOW,
+				CW_USEDEFAULT,
+				CW_USEDEFAULT,
+				static_cast<int>(window_width_),
+				static_cast<int>(window_height_),
+				nullptr,
+				nullptr,
+				handle,
+				nullptr);
+
+		if (!window_)
+		{
+			// todo
+			MessageBox(nullptr, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+			return;
+		}
+
+		// Scale window based on DPI
+		dpi_ = get_current_dpi(window_);
+
+		RECT rect;
+		GetWindowRect(window_, &rect);
+		SetWindowPos(
+				window_,
+				nullptr,
+				rect.left,
+				rect.top,
+				MulDiv(static_cast<int>(window_width_), static_cast<int>(dpi_), USER_DEFAULT_SCREEN_DPI),
+				MulDiv(static_cast<int>(window_height_), static_cast<int>(dpi_), USER_DEFAULT_SCREEN_DPI),
+				SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+		if (window_is_fixed_)
+		{
+			auto style = GetWindowLongPtr(window_, GWL_STYLE);
+			style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
+			SetWindowLongPtr(window_, GWL_STYLE, style);
+		}
+
+		// Used with GetWindowLongPtr in WndProcedure
+		SetWindowLongPtr(window_, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+		service_state_ = service_state_result_type::INITIALIZED;
 	}
 
-	auto WebViewWindows::do_register_callback(callback_type callback) -> void { callback_.swap(callback); }
-
-	auto WebViewWindows::do_set_window_title(string_type&& new_title) -> void { window_title_ = std::move(new_title); }
-
-	auto WebViewWindows::do_set_window_title(const string_view_type new_title) -> void { do_set_window_title(string_type{new_title}); }
-
-	auto WebViewWindows::do_set_window_fullscreen(const bool to_fullscreen) -> void
+	// ReSharper disable once CppMemberFunctionMayBeConst
+	auto WebViewWindows::do_set_window_title(const string_view_type title) -> void
 	{
-		if (current_is_fullscreen_ == to_fullscreen) { return; }
+		SetWindowText(window_, title.operator const StringView::impl_type&().data());
+	}
 
-		current_is_fullscreen_ = to_fullscreen;
-
-		if (current_is_fullscreen_)
+	auto WebViewWindows::do_set_window_fullscreen(const bool to_fullscreen) -> set_window_fullscreen_result_type
+	{
+		if (to_fullscreen)
 		{
 			// Store window style before going fullscreen
-			window_info_.style	  = GetWindowLongPtr(window_, GWL_STYLE);
+			window_info_.style    = GetWindowLongPtr(window_, GWL_STYLE);
 			window_info_.ex_style = GetWindowLongPtr(window_, GWL_EXSTYLE);
 			RECT rect;
 			GetWindowRect(window_, &rect);
@@ -212,27 +268,53 @@ namespace gal::web_view::impl
 		}
 	}
 
-	auto WebViewWindows::do_run() -> bool
+	// ReSharper disable once CppMemberFunctionMayBeConst
+	auto WebViewWindows::do_navigate(const url_view_type target_url) -> navigate_result_type
 	{
+		if (FAILED(web_view_window_->Navigate(target_url.operator const StringView::impl_type&().data())))
+		{
+			// todo
+			MessageBox(nullptr, TEXT("Navigate failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+			return navigate_result_type::NAVIGATE_FAILED;
+		}
+		return navigate_result_type::SUCCESS;
+	}
+
+	auto WebViewWindows::do_eval(const javascript_code_view_type javascript_code) const -> javascript_execution_result_type
+	{
+		// Schedule an async task to get the document URL
+		web_view_window_->ExecuteScript(
+				javascript_code.operator const StringView::impl_type&().data(),
+				Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
+						[](const HRESULT error_code, const LPCWSTR result_object_as_json) -> HRESULT
+						{
+							// todo
+							if (FAILED(error_code)) { (void)result_object_as_json; }
+							return S_OK;
+						})
+				.Get());
+		return true;
+	}
+
+	auto WebViewWindows::do_service_start() -> service_start_result_type
+	{
+		assert(service_state_ == service_state_result_type::INITIALIZED && "Initialize service first!");
+
 		ShowWindow(window_, SW_SHOWDEFAULT);
 		UpdateWindow(window_);
 		SetFocus(window_);
 
 		// Set to single-thread
 		if (FAILED(CoInitializeEx(
-					nullptr,
-					COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
-		{
-			// todo
-			return false;
-		}
+			nullptr,
+			COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE))) { return service_start_result_type::SERVICE_INITIALIZE_FAILED; }
 
 		auto on_web_message_received =
 				[this](
-						[[maybe_unused]] ICoreWebView2*			  web_view,
-						ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+				[[maybe_unused]] ICoreWebView2*           web_view,
+				ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
 		{
-			if (callback_)
+			if (current_callback_)
 			{
 				LPWSTR message;
 				if (const auto result = args->TryGetWebMessageAsString(&message);
@@ -242,7 +324,7 @@ namespace gal::web_view::impl
 					return result;
 				}
 
-				callback_(*this, std::filesystem::path{message}.string());
+				current_callback_(*this, {message});
 
 				CoTaskMemFree(message);
 			}
@@ -251,8 +333,8 @@ namespace gal::web_view::impl
 
 		auto on_web_view_controller_create =
 				[this, on_web_message_received](
-						const HRESULT			 error_code,
-						ICoreWebView2Controller* controller) -> HRESULT
+				const HRESULT            error_code,
+				ICoreWebView2Controller* controller) -> HRESULT
 		{
 			if (FAILED(error_code)) { return error_code; }
 
@@ -264,7 +346,7 @@ namespace gal::web_view::impl
 
 			wil::com_ptr<ICoreWebView2Settings> settings;
 			web_view_window_->get_Settings(&settings);
-			if (is_dev_tools_enabled_)
+			if (web_view_use_dev_tools_)
 			{
 				if (FAILED(settings->put_AreDevToolsEnabled(true)))
 				{
@@ -276,7 +358,7 @@ namespace gal::web_view::impl
 			resize();
 
 			web_view_window_->AddScriptToExecuteOnDocumentCreated(
-					preload_js_code_.operator String::impl_type&().data(),
+					inject_javascript_code_.operator String::impl_type&().data(),
 					Microsoft::WRL::Callback<ICoreWebView2AddScriptToExecuteOnDocumentCreatedCompletedHandler>(
 							[](const HRESULT created_error_code, const LPCWSTR id) -> HRESULT
 							{
@@ -284,31 +366,27 @@ namespace gal::web_view::impl
 								if (FAILED(created_error_code)) { (void)id; }
 								return S_OK;
 							})
-							.Get());
+					.Get());
 
 			web_view_window_->add_WebMessageReceived(
 					Microsoft::WRL::Callback<ICoreWebView2WebMessageReceivedEventHandler>(on_web_message_received).Get(),
 					nullptr);
 
 			// Done initialization, set properties
-			is_ready_ = true;
+			service_state_ = service_state_result_type::RUNNING;
 
-			if (current_is_fullscreen_)
-			{
-				current_is_fullscreen_ = false;
-				set_window_fullscreen(true);
-			}
+			if (window_is_fullscreen_) { do_set_window_fullscreen(true); }
 
 			// navigate to the pending url
-			redirect_to(pending_redirect_url_);
+			do_navigate(current_url_);
 
 			return S_OK;
 		};
 
 		auto on_create_environment =
 				[this, on_web_view_controller_create](
-						const HRESULT			  error_code,
-						ICoreWebView2Environment* environment) -> HRESULT
+				const HRESULT             error_code,
+				ICoreWebView2Environment* environment) -> HRESULT
 		{
 			if (error_code == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
 			{
@@ -331,7 +409,7 @@ namespace gal::web_view::impl
 				// Get AppData path
 				DWORD  app_data_path_length{1 << 15};
 				String app_data_path{};
-				auto& app_data_path_rep = app_data_path.operator String::impl_type&();
+				auto&  app_data_path_rep = app_data_path.operator String::impl_type&();
 				app_data_path_rep.resize(static_cast<String::size_type>(app_data_path_length));
 				app_data_path_length = GetEnvironmentVariable(TEXT("APPDATA"), app_data_path_rep.data(), app_data_path_length);
 
@@ -351,22 +429,23 @@ namespace gal::web_view::impl
 
 		// Create WebView2 environment
 		if (FAILED(CreateCoreWebView2EnvironmentWithOptions(
-					nullptr,
-					environment_path.c_str(),
-					nullptr,
-					Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(on_create_environment).Get())))
+			nullptr,
+			environment_path.c_str(),
+			nullptr,
+			Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(on_create_environment).Get())))
 		{
 			CoUninitialize();
-			return false;
+			return service_start_result_type::SERVICE_INITIALIZE_FAILED;
 		}
 
-		return true;
+		return service_start_result_type::SUCCESS;
 	}
 
-	auto WebViewWindows::do_is_running() const -> bool
+	// ReSharper disable once CppMemberFunctionMayBeConst
+	auto WebViewWindows::do_iteration() -> service_iteration_result_type
 	{
 		(void)this;
-		MSG		   msg;
+		MSG        msg;
 		const auto is_running = GetMessage(&msg, nullptr, 0, 0);
 		if (is_running)
 		{
@@ -377,167 +456,11 @@ namespace gal::web_view::impl
 	}
 
 	// ReSharper disable once CppMemberFunctionMayBeConst
-	auto WebViewWindows::do_shutdown() -> void
+	auto WebViewWindows::do_shutdown() -> service_shutdown_result_type
 	{
 		(void)this;
 		PostQuitMessage(WM_QUIT);
 		CoUninitialize();
-	}
-
-	// ReSharper disable once CppMemberFunctionMayBeConst
-	auto WebViewWindows::do_redirect_to(const string_view_type target_url) -> bool
-	{
-		if (!is_ready())
-		{
-			pending_redirect_url_.operator String::impl_type&().assign(target_url);
-			return false;
-		}
-
-		if (FAILED(web_view_window_->Navigate(target_url.operator const StringView::impl_type&().data())))
-		{
-			// todo
-			MessageBox(nullptr, TEXT("Navigate failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
-			return false;
-		}
-		return true;
-	}
-
-	auto WebViewWindows::do_redirect_to(const std::string_view target_url) -> bool
-	{
-		const auto real_url = string_type{std::filesystem::path{target_url}};
-		return do_redirect_to(real_url);
-	}
-
-	// ReSharper disable once CppMemberFunctionMayBeConst
-	auto WebViewWindows::do_eval(const string_view_type js_code) -> void
-	{
-		// Schedule an async task to get the document URL
-		web_view_window_->ExecuteScript(
-				js_code.operator const StringView::impl_type&().data(),
-				Microsoft::WRL::Callback<ICoreWebView2ExecuteScriptCompletedHandler>(
-						[](const HRESULT error_code, const LPCWSTR result_object_as_json) -> HRESULT
-						{
-							// todo
-							if (FAILED(error_code)) { (void)result_object_as_json; }
-							return S_OK;
-						})
-						.Get());
-	}
-
-	auto WebViewWindows::do_eval(const std::string_view js_code) -> void
-	{
-		const auto real_code = string_type{std::filesystem::path{js_code}};
-		return do_eval(real_code);
-	}
-
-	auto WebViewWindows::do_preload(const string_view_type js_code) -> void
-	{
-		// todo: IIFE?
-		constexpr string_view_type iife_left{TEXT("(() => {")};
-		constexpr string_view_type iife_right{TEXT("})()")};
-
-		preload_js_code_.		   operator String::impl_type&().append(iife_left).append(js_code).append(iife_right);
-	}
-
-	auto WebViewWindows::window_info::write_rect(const tagRECT& target_rect) -> void
-	{
-		// if the size does not match, this will not compile.
-		rect = std::bit_cast<fake_rect>(target_rect);
-	}
-
-	WebViewWindows::WebViewWindows()
-		: is_ready_{false},
-		  is_dev_tools_enabled_{false},
-		  is_temp_environment_{false},
-		  current_is_fullscreen_{false},
-		  dpi_{0},
-		  window_info_{},
-		  window_{nullptr},
-		  preload_js_code_{TEXT("window.external." GAL_WEBVIEW_METHOD_NAME "=arg=>window.chrome.webview.postMessage(arg);")} {}
-
-	auto WebViewWindows::initialize_win32_windows(
-			const size_type window_width,
-			const size_type window_height,
-			string_type&&	window_title,
-			const bool		is_window_resizable) -> bool
-	{
-		HMODULE handle;
-		if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, nullptr, &handle) == 0 || !handle)
-		{
-			// todo
-			return false;
-		}
-
-		window_title_.swap(window_title);
-
-		// create a win32 window
-		const WNDCLASSEX window{
-				.cbSize		   = sizeof(WNDCLASSEX),
-				.style		   = 0,
-				.lpfnWndProc   = WndProcedure,
-				.cbClsExtra	   = 0,
-				.cbWndExtra	   = 0,
-				.hInstance	   = handle,
-				.hIcon		   = LoadIcon(nullptr, IDI_APPLICATION),
-				.hCursor	   = LoadCursor(nullptr, IDC_ARROW),
-				.hbrBackground = reinterpret_cast<HBRUSH>((COLOR_WINDOW + 1)),// NOLINT(performance-no-int-to-ptr)
-				.lpszMenuName  = nullptr,
-				.lpszClassName = TEXT("webview_windows"),
-				.hIconSm	   = LoadIcon(nullptr, IDI_APPLICATION)};
-
-		if (!RegisterClassEx(&window))
-		{
-			MessageBox(nullptr, TEXT("Call to RegisterClassEx failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
-			return false;
-		}
-
-		// Set default DPI awareness
-		set_dpi_awareness();
-
-		window_ = CreateWindow(
-				TEXT("webview_windows"),
-				window_title_.operator String::impl_type&().c_str(),
-				WS_OVERLAPPEDWINDOW,
-				CW_USEDEFAULT,
-				CW_USEDEFAULT,
-				static_cast<int>(window_width),
-				static_cast<int>(window_height),
-				nullptr,
-				nullptr,
-				handle,
-				nullptr);
-
-		if (!window_)
-		{
-			MessageBox(nullptr, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
-			return false;
-		}
-
-		// Scale window based on DPI
-		dpi_ = get_current_dpi(window_);
-
-		RECT rect;
-		GetWindowRect(window_, &rect);
-		SetWindowPos(
-				window_,
-				nullptr,
-				rect.left,
-				rect.top,
-				MulDiv(static_cast<int>(window_width), static_cast<int>(dpi_), USER_DEFAULT_SCREEN_DPI),
-				MulDiv(static_cast<int>(window_height), static_cast<int>(dpi_), USER_DEFAULT_SCREEN_DPI),
-				SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-
-		if (!is_window_resizable)
-		{
-			auto style = GetWindowLongPtr(window_, GWL_STYLE);
-			style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
-			SetWindowLongPtr(window_, GWL_STYLE, style);
-		}
-
-		// Used with GetWindowLongPtr in WndProcedure
-		SetWindowLongPtr(window_, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
-
-		return true;
 	}
 
 	// ReSharper disable once CppMemberFunctionMayBeConst
@@ -552,14 +475,14 @@ namespace gal::web_view::impl
 	{
 		const auto old_dpi = std::exchange(dpi_, new_dpi);
 
-		if (current_is_fullscreen_)
+		if (window_is_fullscreen_)
 		{
 			// Scale the saved window size by the change in DPI
-			auto	   saved_rect = std::bit_cast<RECT>(window_info_.rect);
+			auto       saved_rect = std::bit_cast<RECT>(window_info_.rect);
 			const auto old_width  = saved_rect.right - saved_rect.left;
 			const auto old_height = saved_rect.bottom - saved_rect.top;
-			saved_rect.right	  = saved_rect.left + MulDiv(static_cast<int>(old_width), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
-			saved_rect.bottom	  = saved_rect.top + MulDiv(static_cast<int>(old_height), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
+			saved_rect.right      = saved_rect.left + MulDiv(static_cast<int>(old_width), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
+			saved_rect.bottom     = saved_rect.top + MulDiv(static_cast<int>(old_height), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
 
 			window_info_.write_rect(saved_rect);
 		}
@@ -575,6 +498,6 @@ namespace gal::web_view::impl
 					SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 		}
 	}
-}// namespace gal::web_view::impl
+}
 
 #endif

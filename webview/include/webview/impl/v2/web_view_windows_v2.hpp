@@ -3,19 +3,13 @@
 #ifdef GAL_WEBVIEW_COMPILER_MSVC
 
 #ifndef UNICODE
-	#warning "Currently only supports unicode on Windows platform"
-#define UNICODE
+		#warning "Currently only supports unicode on Windows platform"
+		#define UNICODE
 #endif
 
-#include <WebView2.h>
+#include <webview/impl/v2/web_view_base.hpp>
 #include <wil/com.h>
 
-#include <functional>
-#include <string>
-#include <string_view>
-#include <webview/basic_web_view.hpp>
-
-// todo
 // windef.h
 struct tagRECT;
 struct HWND__;
@@ -59,11 +53,11 @@ namespace gal::web_view
 
 			template<typename CharTraits, typename Allocator>
 			explicit(false) String(const std::basic_string<char, CharTraits, Allocator>& string)
-				: String{string.c_str(), string.size()} {}
+				: String{string.c_str(), string.size()} { }
 
 			template<typename CharTraits>
 			explicit(false) String(const std::basic_string_view<char, CharTraits>& string_view)
-				: String{string_view.data(), string_view.size()} {}
+				: String{string_view.data(), string_view.size()} { }
 
 			constexpr explicit(false) operator impl_type&() noexcept { return string_; }
 
@@ -98,7 +92,7 @@ namespace gal::web_view
 			template<typename Arg>
 				requires std::is_constructible_v<impl_type, Arg>
 			constexpr explicit(!std::is_convertible_v<Arg, impl_type>) StringView(Arg&& arg) noexcept(std::is_nothrow_constructible_v<impl_type, Arg>)
-				: string_view_{std::forward<Arg>(arg)} {}
+				: string_view_{std::forward<Arg>(arg)} { }
 
 			// constexpr explicit(false) StringView(const String& string) = delete;// use String.operator StringView()
 			// 	: string_view_{string.operator const String::impl_type&()} {}
@@ -118,55 +112,31 @@ namespace gal::web_view
 	}
 
 	template<>
-	struct WebViewTypeDescriptor<impl::WebViewWindows>
+	struct WebViewTypeDescriptor<impl::WebViewWindows> : public WebViewTypeDescriptor<void>, public std::true_type
 	{
-		using size_type = std::size_t;
-
 		using string_type = impl::String;
 		using string_view_type = impl::StringView;
-		// arg type is std::string
-		using callback_type = std::function<auto(impl::WebViewWindows&, std::string&&) -> void>;
+
+		// todo: wstring or string?
+		template<typename ImplType>
+		using javascript_callback_type = std::function<auto(ImplType&, string_type::impl_type&&) -> void>;
+
+		using url_type = string_type;
+		using url_view_type = string_view_type;
+		using javascript_code_type = string_type;
+		using javascript_code_view_type = string_view_type;
+	};
+
+	struct WebViewConstructArgsWindows : public WebViewConstructArgs<WebViewTypeDescriptor<impl::WebViewWindows>>
+	{
+		bool is_temp_environment;
 	};
 
 	namespace impl
 	{
-		class WebViewWindows final : public BasicWebView<WebViewWindows>
+		class WebViewWindows final : public WebViewBase<WebViewWindows>
 		{
-			friend BasicWebView<WebViewWindows>;
-
-			auto do_initialize(
-					size_type window_width,
-					size_type window_height,
-					string_type&& window_title,
-					bool is_window_resizable,
-					bool is_fullscreen,
-					bool is_dev_tools_enabled,
-					bool is_temp_environment
-					) -> bool;
-
-			auto do_register_callback(callback_type callback) -> void;
-
-			auto do_set_window_title(string_view_type new_title) -> void;
-
-			auto do_set_window_title(string_type&& new_title) -> void;
-
-			auto do_set_window_fullscreen(bool to_fullscreen) -> void;
-
-			auto do_run() -> bool;
-
-			[[nodiscard]] auto do_is_running() const -> bool;
-
-			auto do_shutdown() -> void;
-
-			auto do_redirect_to(string_view_type target_url) -> bool;
-
-			auto do_redirect_to(std::string_view target_url) -> bool;
-
-			auto do_eval(string_view_type js_code) -> void;
-
-			auto do_eval(std::string_view js_code) -> void;
-
-			auto do_preload(string_view_type js_code) -> void;
+			friend WebViewBase;
 
 		public:
 			using dpi_type = std::uint32_t;
@@ -191,41 +161,43 @@ namespace gal::web_view
 				void write_rect(const tagRECT& target_rect);
 			};
 
-			WebViewWindows();
-
 		private:
-			bool is_ready_;
-			bool is_dev_tools_enabled_;
 			bool is_temp_environment_;
 
-			bool current_is_fullscreen_;
-			dpi_type dpi_;
+			dpi_type    dpi_;
 			window_info window_info_;
 
 			HWND__* window_;
-			string_type window_title_;
-			string_type preload_js_code_;
-			string_type pending_redirect_url_;
-			callback_type callback_;
 
 			web_view_controller_type web_view_controller_;
-			web_view_window_type web_view_window_;
-
-			auto initialize_win32_windows(
-					size_type window_width,
-					size_type window_height,
-					string_type&& window_title,
-					bool is_window_resizable
-					) -> bool;
+			web_view_window_type     web_view_window_;
 
 		public:
-			[[nodiscard]] auto is_ready() const noexcept -> bool { return is_ready_; }
+			explicit WebViewWindows(WebViewConstructArgsWindows&& args);
 
+		private:
+			auto do_set_window_title(string_view_type title) -> void;
+
+			auto do_set_window_fullscreen(bool to_fullscreen) -> set_window_fullscreen_result_type;
+
+			auto do_navigate(url_view_type target_url) -> navigate_result_type;
+
+			[[nodiscard]] auto do_eval(javascript_code_view_type javascript_code) const -> javascript_execution_result_type;
+
+			auto do_service_start() -> service_start_result_type;
+
+			auto do_iteration() -> service_iteration_result_type;
+
+			auto do_shutdown() -> service_shutdown_result_type;
+
+		public:
+			// INTERNAL USE ONLY, DO NOT USE IT!!!
 			auto resize() -> void;
 
+			// INTERNAL USE ONLY, DO NOT USE IT!!!
 			auto set_dpi(dpi_type new_dpi, const tagRECT& rect) -> void;
 		};
-	}// namespace impl
-}    // namespace gal::web_view
+	}
+}
 
 #endif
