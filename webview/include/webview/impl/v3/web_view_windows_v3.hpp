@@ -55,13 +55,13 @@ namespace gal::web_view::impl
 			dpi_type          dpi_;
 			saved_window_info window_info_;
 
-			HWND__* window_;
+			native_window_type window_;
 
 			web_view_controller_type web_view_controller_;
 			web_view_window_type     web_view_window_;
 
 		public:
-			using WebViewBase::WebViewBase;
+			// using WebViewBase::WebViewBase;
 
 			WebViewWindows(
 					window_size_type window_width,

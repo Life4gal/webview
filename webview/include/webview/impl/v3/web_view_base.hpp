@@ -87,10 +87,10 @@ namespace gal::web_view::impl
 					const window_size_type window_width,
 					const window_size_type window_height,
 					string_type&&          window_title,
-					const bool             window_is_fixed        = false,
-					const bool             window_is_fullscreen   = false,
-					const bool             web_view_use_dev_tools = false,
-					string_type&&          index_url              = string_type{default_index_url}
+					const bool             window_is_fixed,
+					const bool             window_is_fullscreen,
+					const bool             web_view_use_dev_tools,
+					string_type&&          index_url
 					)
 				: window_width_{window_width},
 				  window_height_{window_height},
