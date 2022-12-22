@@ -28,6 +28,9 @@ jobs:
       - name: Install ninja-build tool
         uses: seanmiddleditch/gha-setup-ninja@v3
 
+      - name: Install gtk3+ and webkit2gtk4
+        run: sudo apt install libgtk-3-dev libwebkit2gtk-4.0-dev -y
+
       - uses: actions/cache@v3
         with:
           path: "**/cpm_modules"
