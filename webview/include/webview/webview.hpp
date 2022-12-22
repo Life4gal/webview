@@ -5,13 +5,13 @@
 
 namespace gal::web_view
 {
-	#if defined(GAL_WEBVIEW_COMPILER_MSVC)
+	#if defined(GAL_WEBVIEW_COMPILER_MSVC) or defined(GAL_WEBVIEW_COMPILER_CLANG_CL)
 
-	using web_view = impl::WebViewWindows;
+	using WebView = impl::WebViewWindows;
 
-	#elif defined(GAL_WEBVIEW_COMPILER_GNU)
+	#elif defined(GAL_WEBVIEW_COMPILER_GNU) or defined(GAL_WEBVIEW_COMPILER_CLANG)
 
-	using web_view = impl::WebViewLinux;
+	using WebView = impl::WebViewLinux;
 
 	#else
 

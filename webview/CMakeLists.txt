@@ -46,18 +46,43 @@ set(GAL_WEBVIEW_LINK_DIRS)
 set(GAL_WEBVIEW_LIBS)
 set(GAL_WEBVIEW_DEFINITIONS)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 	# windows & msvc
 	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Microsoft/WebView2.cmake)
 	target_compile_definitions(
-		${PROJECT_NAME}
-		PUBLIC
-		UNICODE
+			${PROJECT_NAME}
+			PUBLIC
+			UNICODE
 	)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 	# linux & gcc
 	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Linux/gtk3.cmake)
 	include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Linux/webkit2gtk4.cmake)
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	if ("${CMAKE_CXX_SIMULATE_ID}" STREQUAL "MSVC")
+		# clang-cl
+		include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Microsoft/WebView2.cmake)
+		target_compile_definitions(
+				${PROJECT_NAME}
+				PUBLIC
+				UNICODE
+		)
+	else ()
+		# clang
+		include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Linux/gtk3.cmake)
+		include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/Linux/webkit2gtk4.cmake)
+	endif ()
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+	# todo
+	message(FATAL_ERROR "MacOS platform is not currently supported.")
+else ()
+	message(FATAL_ERROR "Unknown Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
+endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
 else()
 	# todo
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

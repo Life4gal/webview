@@ -122,7 +122,7 @@ auto main(
 		return -1;
 	}
 
-	gal::web_view::web_view web_view{
+	gal::web_view::WebView web_view{
 			/*.window_width = */600,
 			                    /*.window_height = */ 800,
 			                    /*.window_title = */ "hello web view",
@@ -132,12 +132,12 @@ auto main(
 			                    /*.index_url = */ {},
 	};
 
-	gal::web_view::web_view::string_type target_url{"file:///"};
+	gal::web_view::WebView::string_type target_url{"file:///"};
 	target_url.append(CALLBACK_TEST_HTML_PATH);
 	web_view.navigate(target_url);
 
 	web_view.register_javascript_callback(
-			[](gal::web_view::web_view& wv, gal::web_view::web_view::string_type&& arg) -> void
+			[](gal::web_view::WebView& wv, gal::web_view::WebView::string_type&& arg) -> void
 			{
 				constexpr auto  factorial = y_combinator{
 						[](auto self, std::size_t n) -> std::size_t
@@ -159,12 +159,12 @@ auto main(
 							num);
 					ec != std::errc{} || ptr != arg.c_str() + arg.size())
 				{
-					const gal::web_view::web_view::string_type js{JS_RECEIVE_RESULT_METHOD_NAME "(\"cannot eval '" + arg + "' for factorial!\")"};
+					const gal::web_view::WebView::string_type js{JS_RECEIVE_RESULT_METHOD_NAME "(\"cannot eval '" + arg + "' for factorial!\")"};
 					wv.eval(js);
 				}
 				else
 				{
-					const gal::web_view::web_view::string_type js{JS_RECEIVE_RESULT_METHOD_NAME "(" + std::to_string(factorial(num)) + ")"};
+					const gal::web_view::WebView::string_type js{JS_RECEIVE_RESULT_METHOD_NAME "(" + std::to_string(factorial(num)) + ")"};
 					wv.eval(js);
 				}
 			});
