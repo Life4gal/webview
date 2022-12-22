@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef GAL_WEBVIEW_COMPILER_GNU
+#if defined(GAL_WEBVIEW_COMPILER_GNU) or defined(GAL_WEBVIEW_COMPILER_CLANG)
 
 #include <webview/impl/v3/web_view_base.hpp>
 

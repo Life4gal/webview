@@ -1,9 +1,10 @@
 #pragma once
 
-#ifdef GAL_WEBVIEW_COMPILER_MSVC
+#if defined(GAL_WEBVIEW_COMPILER_MSVC) or defined(GAL_WEBVIEW_COMPILER_CLANG_CL)
 
 #ifndef UNICODE
-		#warning "Currently only supports unicode on Windows platform"
+		// #warning "Currently only supports unicode on Windows platform"
+		#pragma message("Currently only supports unicode on Windows platform")
 		#define UNICODE
 #endif
 
