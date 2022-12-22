@@ -41,7 +41,7 @@ set(${PROJECT_NAME_PREFIX}GLOBAL_SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 set(${PROJECT_NAME_PREFIX}CMAKE_MODULE_PATH ${${PROJECT_NAME_PREFIX}GLOBAL_SOURCE_PATH}/cmake)
 set(${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH ${${PROJECT_NAME_PREFIX}GLOBAL_SOURCE_PATH}/3rd-party)
 
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	message("${PROJECT_NAME} info: Setting build type to 'RelWithDebInfo' as none was specified.")
 	set(
 			CMAKE_BUILD_TYPE RelWithDebInfo
@@ -53,9 +53,9 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 			PROPERTY STRINGS
 			"Debug" "Release" "MinSizeRel" "RelWithDebInfo"
 	)
-else()
+else ()
 	message("${PROJECT_NAME} info: Current build type is: [${CMAKE_BUILD_TYPE}-${CMAKE_CONFIGURATION_TYPES}]")
-endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+endif (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 
 include(${${PROJECT_NAME_PREFIX}CMAKE_MODULE_PATH}/compile_options_setter.cmake)
 include(${${PROJECT_NAME_PREFIX}CMAKE_MODULE_PATH}/turn_off_warning.cmake)
@@ -65,6 +65,20 @@ include(cpm/CPM.cmake)
 
 string(TOLOWER ${PROJECT_NAME} ${PROJECT_NAME}_MAIN_DIRECTORY)
 add_subdirectory(${${PROJECT_NAME}_MAIN_DIRECTORY})
-enable_testing()
-add_subdirectory(standalone_test)
-add_subdirectory(unit_test)
+
+set(WEBVIEW_TOP_PROJECT OFF)
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+	set(WEBVIEW_TOP_PROJECT ON)
+	message(STATUS "CMake version: ${CMAKE_VERSION}")
+endif ()
+
+option(WEBVIEW_TEST, "build web view test" ${WEBVIEW_TOP_PROJECT})
+
+if (WEBVIEW_TEST)
+	message("[WEBVIEW] build test...")
+	enable_testing()
+	add_subdirectory(standalone_test)
+	add_subdirectory(unit_test)
+else()
+	message("[WEBVIEW] drop test...")
+endif (WEBVIEW_TEST)
