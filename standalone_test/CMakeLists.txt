@@ -28,7 +28,7 @@ function(setup_project project_name html_path)
 	#	"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"
 	#)
 
-	set_compile_options_private(${project_name})
+	set_compile_property(${project_name})
 	turn_off_warning(${project_name})
 endfunction(setup_project)
 

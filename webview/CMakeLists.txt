@@ -118,4 +118,4 @@ target_compile_definitions(
 	# TODO: MORE COMPILERS HERE.
 )
 
-set_compile_options_private(${PROJECT_NAME})
+set_compile_property(${PROJECT_NAME})

@@ -19,7 +19,7 @@ add_executable(
 
 CPM_link_libraries_DECL()
 include(${${PROJECT_NAME_PREFIX}CMAKE_3RDPARTY_PATH}/boost-ext-ut.cmake)
-CPM_link_libraries_LINK()
+CPM_link_libraries_LINK(${PROJECT_NAME})
 
 target_link_libraries(
 		${PROJECT_NAME}
@@ -27,5 +27,5 @@ target_link_libraries(
 		gal::WebView
 )
 
-set_compile_options_private(${PROJECT_NAME})
+set_compile_property(${PROJECT_NAME})
 turn_off_warning(${PROJECT_NAME})
