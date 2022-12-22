@@ -34,6 +34,12 @@ function(set_compile_property target_name)
 					COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror"
 			)
 		endif ()
+	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+		set_target_properties(
+				${target_name}
+				PROPERTIES
+				COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror"
+		)
 	else ()
 		message(FATAL_ERROR "Unknown Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
 	endif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

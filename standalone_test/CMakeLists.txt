@@ -44,3 +44,8 @@ target_compile_definitions(
 	#$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:"file:///${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/callback/callback.html">
 )
 setup_project(${PROJECT_NAME}-callback ${PROJECT_SOURCE_DIR}/callback/callback.html)
+
+#add_test(
+#		NAME ${PROJECT_NAME}-callback
+#		COMMAND ${PROJECT_NAME}-callback
+#)
