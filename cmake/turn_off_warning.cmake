@@ -15,6 +15,9 @@ set(
 		# for wil
 		-Wno-unused-but-set-variable
 		-Wno-deprecated-volatile
+
+		# for boostext.ut
+		-Wno-global-constructors
 )
 
 set(
@@ -23,6 +26,9 @@ set(
 		# for wil
 		-Wno-unused-but-set-variable
 		-Wno-deprecated-volatile
+
+		# for boostext.ut
+		-Wno-global-constructors
 )
 
 macro(turn_off_warning target_name)
