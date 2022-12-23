@@ -1,4 +1,4 @@
-#if defined(GAL_WEBVIEW_COMPILER_MSVC) or defined(GAL_WEBVIEW_COMPILER_CLANG_CL)
+#if defined(GAL_WEBVIEW_PLATFORM_WINDOWS)
 
 #include <webview/impl/v3/web_view_windows_v3.hpp>
 

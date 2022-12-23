@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(GAL_WEBVIEW_COMPILER_MSVC) or defined(GAL_WEBVIEW_COMPILER_CLANG_CL)
+#if defined(GAL_WEBVIEW_PLATFORM_WINDOWS)
 
 #ifndef UNICODE
 		// #warning "Currently only supports unicode on Windows platform"

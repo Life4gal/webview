@@ -1,4 +1,4 @@
-#if defined(GAL_WEBVIEW_COMPILER_GNU) or defined(GAL_WEBVIEW_COMPILER_CLANG)
+#if defined(GAL_WEBVIEW_PLATFORM_LINUX)
 
 #include <webview/impl/v3/web_view_linux_v3.hpp>
 

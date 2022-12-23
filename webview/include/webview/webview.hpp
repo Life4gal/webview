@@ -5,17 +5,17 @@
 
 namespace gal::web_view
 {
-	#if defined(GAL_WEBVIEW_COMPILER_MSVC) or defined(GAL_WEBVIEW_COMPILER_CLANG_CL)
+	#if defined(GAL_WEBVIEW_PLATFORM_WINDOWS)
 
 	using WebView = impl::WebViewWindows;
 
-	#elif defined(GAL_WEBVIEW_COMPILER_GNU) or defined(GAL_WEBVIEW_COMPILER_CLANG)
+	#elif defined(GAL_WEBVIEW_PLATFORM_LINUX)
 
 	using WebView = impl::WebViewLinux;
 
 	#else
 
-	// todo
+	#error "Unknown Platform!"
 
 	#endif
 }// namespace gal::web_view
