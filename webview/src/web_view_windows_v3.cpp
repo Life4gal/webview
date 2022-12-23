@@ -33,12 +33,38 @@ namespace
 		return string;
 	}
 
+	namespace detail
+	{
+		template<typename T, bool>
+		struct converter;
+
+		template<typename T>
+		struct converter<T, true>
+		{
+			[[nodiscard]] constexpr auto operator()(const T& s) const // -> std::basic_string<raw_char_type>
+			{
+				return std::filesystem::path{s}.wstring();
+			}
+		};
+
+		template<typename T>
+		struct converter<T, false>
+		{
+			[[nodiscard]] constexpr auto operator()(const T& s) const // -> std::basic_string<raw_char_type>
+			{
+				return std::filesystem::path{s}.string();
+			}
+		};
+	}
+
 	template<typename StringView>
 	[[nodiscard]] auto to_wchar_string(const StringView& string) -> std::basic_string<raw_char_type> requires(!std::is_same_v<typename StringView::value_type, raw_char_type>)
 	{
 		// convert required
-		if constexpr (std::is_same_v<raw_char_type, wchar_t>) { return std::filesystem::path{string}.wstring(); }
-		else { return std::filesystem::path{string}.string(); }
+		return detail::converter<StringView, std::is_same_v<raw_char_type, wchar_t>>{}(string);
+
+		// if constexpr (std::is_same_v<raw_char_type, wchar_t>) { return std::filesystem::path{string}.wstring(); }
+		// else { return std::filesystem::path{string}.string(); }
 	}
 
 	template<typename RawString>
