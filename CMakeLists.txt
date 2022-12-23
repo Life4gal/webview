@@ -66,19 +66,12 @@ include(cpm/CPM.cmake)
 string(TOLOWER ${PROJECT_NAME} ${PROJECT_NAME}_MAIN_DIRECTORY)
 add_subdirectory(${${PROJECT_NAME}_MAIN_DIRECTORY})
 
-set(WEBVIEW_TOP_PROJECT OFF)
+# todo: option not work?
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-	set(WEBVIEW_TOP_PROJECT ON)
-	message(STATUS "CMake version: ${CMAKE_VERSION}")
-endif ()
-
-option(WEBVIEW_TEST, "build web view test" ${WEBVIEW_TOP_PROJECT})
-
-if (WEBVIEW_TEST)
 	message("[WEBVIEW] build test...")
 	enable_testing()
 	add_subdirectory(standalone_test)
 	add_subdirectory(unit_test)
 else()
 	message("[WEBVIEW] drop test...")
-endif (WEBVIEW_TEST)
+endif ()
