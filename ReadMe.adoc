@@ -144,7 +144,7 @@ auto build_html() -> bool
 	return true;
 }
 
-#ifdef GAL_WEBVIEW_PLATFORM_WINDOWS
+#ifdef GAL_WEBVIEW_COMPILER_MSVC
 auto __stdcall WinMain(
 		_In_ const HINSTANCE /* hInstance */,
 		_In_opt_ HINSTANCE /* hPrevInstance */,
