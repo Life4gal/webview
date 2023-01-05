@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<packages>
-  <package id="Microsoft.Web.WebView2" version="${GAL_WEBVIEW_WEBVIEW2_VERSION}" targetFramework="native" />
-  <package id="Microsoft.Windows.ImplementationLibrary" version="${GAL_WEBVIEW_WIL_VERSION}" targetFramework="native" />
-</packages>

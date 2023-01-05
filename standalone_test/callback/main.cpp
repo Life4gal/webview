@@ -103,8 +103,10 @@ auto build_html() -> bool
 }
 
 #ifdef GAL_WEBVIEW_COMPILER_MSVC
+#include <windows.h>
+
 auto __stdcall WinMain(
-		_In_ const HINSTANCE /* hInstance */,
+		_In_ HINSTANCE /* hInstance */,
 		_In_opt_ HINSTANCE /* hPrevInstance */,
 		_In_ LPSTR /* lpCmdLine */,
 		_In_ int/* nShowCmd */

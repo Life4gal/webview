@@ -1,5 +1,5 @@
 project(
-		WebView-standalone-test
+		webview-standalone-test
 		LANGUAGES CXX
 )
 
@@ -18,7 +18,7 @@ function(setup_project project_name html_path)
 	target_link_libraries(
 		${project_name}
 		PRIVATE
-		gal::WebView
+		gal::webview
 	)
 
 	#add_custom_command(
@@ -27,9 +27,6 @@ function(setup_project project_name html_path)
 	#	${html_path}
 	#	"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"
 	#)
-
-	set_compile_property(${project_name})
-	turn_off_warning(${project_name})
 endfunction(setup_project)
 
 add_executable(
