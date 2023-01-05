@@ -1,33 +1,33 @@
 #if defined(GAL_WEBVIEW_PLATFORM_WINDOWS)
 
-#include <webview/impl/v3/web_view_windows_v3.hpp>
+	#define UNICODE
+// #define WIN32_LEAN_AND_MEAN
 
-#include <bit>
-#include <filesystem>
-#include <memory>
-#include <cassert>
-#include <windows.h>
-#include <shellscalingapi.h>
-#include <wrl.h>
+	#include <WebView2.h>
+	#include <ShellScalingApi.h>
+	#include <wil/com.h>
+	#include <windows.h>
+	#include <wrl.h>
+
+	#include <bit>
+	#include <cassert>
+	#include <filesystem>
+	#include <memory>
+	#include <webview/impl/v3/web_view_windows_v3.hpp>
 
 namespace
 {
-	using web_view_windows = gal::web_view::impl::WebViewWindows;
-	using library_type = std::unique_ptr<std::remove_pointer_t<HMODULE>, decltype(&::FreeLibrary)>;
+	using web_view_windows	 = gal::web_view::impl::WebViewWindows;
+	using library_type		 = std::unique_ptr<std::remove_pointer_t<HMODULE>, decltype(&::FreeLibrary)>;
 
-	using raw_char_type =
-	std::conditional_t<
-		std::is_same_v<std::remove_cvref_t<decltype(std::declval<decltype(TEXT(""))>()[0])>, char>,
-		char,
-		wchar_t>;
-	using raw_string_pointer =
-	std::conditional_t<
-		std::is_same_v<raw_char_type, char>,
-		LPCSTR,
-		LPCWSTR>;
+	using raw_char_type		 = wchar_t;
+	using raw_string_pointer = LPCWSTR;
+
+	using const_hwnd		 = std::add_const_t<HWND>;
 
 	template<typename StringView>
-	[[nodiscard]] auto to_wchar_string(const StringView& string) -> std::basic_string_view<raw_char_type> requires std::is_same_v<typename StringView::value_type, raw_char_type>
+	[[nodiscard]] auto to_wchar_string(const StringView& string) -> std::basic_string_view<raw_char_type>
+		requires std::is_same_v<typename StringView::value_type, raw_char_type>
 	{
 		// just return it
 		return string;
@@ -41,7 +41,7 @@ namespace
 		template<typename T>
 		struct converter<T, true>
 		{
-			[[nodiscard]] constexpr auto operator()(const T& s) const // -> std::basic_string<raw_char_type>
+			[[nodiscard]] constexpr auto operator()(const T& s) const// -> std::basic_string<raw_char_type>
 			{
 				return std::filesystem::path{s}.wstring();
 			}
@@ -50,15 +50,16 @@ namespace
 		template<typename T>
 		struct converter<T, false>
 		{
-			[[nodiscard]] constexpr auto operator()(const T& s) const // -> std::basic_string<raw_char_type>
+			[[nodiscard]] constexpr auto operator()(const T& s) const// -> std::basic_string<raw_char_type>
 			{
 				return std::filesystem::path{s}.string();
 			}
 		};
-	}
+	}// namespace detail
 
 	template<typename StringView>
-	[[nodiscard]] auto to_wchar_string(const StringView& string) -> std::basic_string<raw_char_type> requires(!std::is_same_v<typename StringView::value_type, raw_char_type>)
+	[[nodiscard]] auto to_wchar_string(const StringView& string) -> std::basic_string<raw_char_type>
+		requires(!std::is_same_v<typename StringView::value_type, raw_char_type>)
 	{
 		// convert required
 		return detail::converter<StringView, std::is_same_v<raw_char_type, wchar_t>>{}(string);
@@ -68,14 +69,16 @@ namespace
 	}
 
 	template<typename RawString>
-	[[nodiscard]] auto from_wchar_string(const RawString& string) -> std::basic_string_view<char> requires std::is_same_v<raw_char_type, char>
+	[[nodiscard]] auto from_wchar_string(const RawString& string) -> std::basic_string_view<char>
+		requires std::is_same_v<raw_char_type, char>
 	{
 		// just return it
 		return {string};
 	}
 
 	template<typename RawString>
-	[[nodiscard]] auto from_wchar_string(const RawString& string) -> std::basic_string<char> requires std::is_same_v<raw_char_type, wchar_t>
+	[[nodiscard]] auto from_wchar_string(const RawString& string) -> std::basic_string<char>
+		requires std::is_same_v<raw_char_type, wchar_t>
 	{
 		// convert required
 		return std::filesystem::path{string}.string();
@@ -84,7 +87,7 @@ namespace
 	[[nodiscard]] auto load_library(const raw_string_pointer filename) -> library_type
 	{
 		return library_type{
-				LoadLibrary(filename),
+				LoadLibraryW(filename),
 				&::FreeLibrary};
 	}
 
@@ -110,7 +113,7 @@ namespace
 		SetProcessDPIAware();// Equivalent to DPI_AWARENESS_CONTEXT_SYSTEM_AWARE
 	}
 
-	auto get_current_dpi(const HWND window) -> web_view_windows::dpi_type
+	auto get_current_dpi(const_hwnd window) -> web_view_windows::dpi_type
 	{
 		// Windows 10
 		const auto user32_library = load_library(TEXT("User32.dll"));
@@ -140,8 +143,8 @@ namespace
 	}
 
 	auto CALLBACK WndProcedure(
-			const HWND   window,
-			const UINT   msg,
+			const_hwnd	 window,
+			const UINT	 msg,
 			const WPARAM w_param,
 			const LPARAM l_param) -> LRESULT
 	{
@@ -158,7 +161,7 @@ namespace
 			{
 				if (web_view)
 				{
-					const auto  current_dpi  = HIWORD(w_param);
+					const auto	current_dpi	 = HIWORD(w_param);
 					const auto& current_rect = *reinterpret_cast<RECT*>(l_param);// NOLINT(performance-no-int-to-ptr)
 					web_view->set_dpi(static_cast<web_view_windows::dpi_type>(current_dpi), current_rect);
 				}
@@ -169,7 +172,10 @@ namespace
 				if (web_view) { web_view->shutdown(); }
 				break;
 			}
-			default: { return DefWindowProc(window, msg, w_param, l_param); }
+			default:
+			{
+				return DefWindowProc(window, msg, w_param, l_param);
+			}
 		}
 
 		return 0;
@@ -185,12 +191,12 @@ namespace gal::web_view::impl
 		WebViewWindows::WebViewWindows(
 				const window_size_type window_width,
 				const window_size_type window_height,
-				string_type&&          window_title,
-				const bool             window_is_fixed,
-				const bool             window_is_fullscreen,
-				const bool             web_view_use_dev_tools,
-				const bool             is_temp_environment,
-				string_type&&          index_url)
+				string_type&&		   window_title,
+				const bool			   window_is_fixed,
+				const bool			   window_is_fullscreen,
+				const bool			   web_view_use_dev_tools,
+				const bool			   is_temp_environment,
+				string_type&&		   index_url)
 			: WebViewBase{
 					  window_width,
 					  window_height,
@@ -216,18 +222,18 @@ namespace gal::web_view::impl
 
 			// create a win32 window
 			const WNDCLASSEX window{
-					.cbSize = sizeof(WNDCLASSEX),
-					.style = 0,
-					.lpfnWndProc = WndProcedure,
-					.cbClsExtra = 0,
-					.cbWndExtra = 0,
-					.hInstance = handle,
-					.hIcon = LoadIcon(nullptr, IDI_APPLICATION),
-					.hCursor = LoadCursor(nullptr, IDC_ARROW),
+					.cbSize		   = sizeof(WNDCLASSEX),
+					.style		   = 0,
+					.lpfnWndProc   = WndProcedure,
+					.cbClsExtra	   = 0,
+					.cbWndExtra	   = 0,
+					.hInstance	   = handle,
+					.hIcon		   = LoadIcon(nullptr, IDI_APPLICATION),
+					.hCursor	   = LoadCursor(nullptr, IDC_ARROW),
 					.hbrBackground = reinterpret_cast<HBRUSH>((COLOR_WINDOW + 1)),// NOLINT(performance-no-int-to-ptr)
-					.lpszMenuName = nullptr,
+					.lpszMenuName  = nullptr,
 					.lpszClassName = TEXT("webview_windows"),
-					.hIconSm = LoadIcon(nullptr, IDI_APPLICATION)};
+					.hIconSm	   = LoadIcon(nullptr, IDI_APPLICATION)};
 
 			if (!RegisterClassEx(&window))
 			{
@@ -286,6 +292,17 @@ namespace gal::web_view::impl
 			service_state_ = ServiceStateResult::INITIALIZED;
 		}
 
+	#ifndef GAL_WEBVIEW_PUBLIC_WEBVIEW2
+		WebViewWindows::~WebViewWindows() noexcept
+		{
+			web_view_controller_->Release();
+			web_view_window_->Release();
+
+			web_view_controller_ = nullptr;
+			web_view_window_	 = nullptr;
+		}
+	#endif
+
 		auto WebViewWindows::do_set_window_title(const string_view_type title) const -> void
 		{
 			SetWindowText(window_, to_wchar_string(title).data());
@@ -296,7 +313,7 @@ namespace gal::web_view::impl
 			if (to_fullscreen)
 			{
 				// Store window style before going fullscreen
-				window_info_.style    = GetWindowLongPtr(window_, GWL_STYLE);
+				window_info_.style	  = GetWindowLongPtr(window_, GWL_STYLE);
 				window_info_.ex_style = GetWindowLongPtr(window_, GWL_EXSTYLE);
 				RECT rect;
 				GetWindowRect(window_, &rect);
@@ -369,7 +386,7 @@ namespace gal::web_view::impl
 								if (FAILED(error_code)) { (void)result_object_as_json; }
 								return S_OK;
 							})
-					.Get());
+							.Get());
 		}
 
 		auto WebViewWindows::do_service_start() -> ServiceStartResult
@@ -382,13 +399,13 @@ namespace gal::web_view::impl
 
 			// Set to single-thread
 			if (FAILED(CoInitializeEx(
-				nullptr,
-				COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE))) { return ServiceStartResult::SERVICE_INITIALIZE_FAILED; }
+						nullptr,
+						COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE))) { return ServiceStartResult::SERVICE_INITIALIZE_FAILED; }
 
 			auto on_web_message_received =
 					[this](
-					[[maybe_unused]] ICoreWebView2*           web_view,
-					ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+							[[maybe_unused]] ICoreWebView2*			  web_view,
+							ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
 			{
 				if (current_callback_)
 				{
@@ -410,15 +427,22 @@ namespace gal::web_view::impl
 
 			auto on_web_view_controller_create =
 					[this, on_web_message_received](
-					const HRESULT            error_code,
-					ICoreWebView2Controller* controller) -> HRESULT
+							const HRESULT			 error_code,
+							ICoreWebView2Controller* controller) -> HRESULT
 			{
 				if (FAILED(error_code)) { return error_code; }
 
 				if (controller)
 				{
+	#ifndef GAL_WEBVIEW_PUBLIC_WEBVIEW2
+					web_view_controller_ = controller;
+					web_view_controller_->AddRef();
+
+					web_view_controller_->get_CoreWebView2(&web_view_window_);
+	#else
 					web_view_controller_ = controller;
 					web_view_controller_->get_CoreWebView2(&web_view_window_);
+	#endif
 				}
 
 				wil::com_ptr<ICoreWebView2Settings> settings;
@@ -443,7 +467,7 @@ namespace gal::web_view::impl
 									if (FAILED(created_error_code)) { (void)id; }
 									return S_OK;
 								})
-						.Get());
+								.Get());
 
 				web_view_window_->add_WebMessageReceived(
 						Microsoft::WRL::Callback<ICoreWebView2WebMessageReceivedEventHandler>(on_web_message_received).Get(),
@@ -462,8 +486,8 @@ namespace gal::web_view::impl
 
 			auto on_create_environment =
 					[this, on_web_view_controller_create](
-					const HRESULT             error_code,
-					ICoreWebView2Environment* environment) -> HRESULT
+							const HRESULT			  error_code,
+							ICoreWebView2Environment* environment) -> HRESULT
 			{
 				if (error_code == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
 				{
@@ -513,10 +537,10 @@ namespace gal::web_view::impl
 
 			// Create WebView2 environment
 			if (FAILED(CreateCoreWebView2EnvironmentWithOptions(
-				nullptr,
-				environment_path.c_str(),
-				nullptr,
-				Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(on_create_environment).Get())))
+						nullptr,
+						environment_path.c_str(),
+						nullptr,
+						Microsoft::WRL::Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(on_create_environment).Get())))
 			{
 				CoUninitialize();
 				return ServiceStartResult::SERVICE_INITIALIZE_FAILED;
@@ -528,7 +552,7 @@ namespace gal::web_view::impl
 		auto WebViewWindows::do_iteration() const -> bool
 		{
 			(void)this;
-			MSG        msg;
+			MSG		   msg;
 			const auto is_running = GetMessage(&msg, nullptr, 0, 0);
 			if (is_running)
 			{
@@ -559,11 +583,11 @@ namespace gal::web_view::impl
 			if (window_is_fullscreen_)
 			{
 				// Scale the saved window size by the change in DPI
-				auto       saved_rect = std::bit_cast<RECT>(window_info_.rect);
+				auto	   saved_rect = std::bit_cast<RECT>(window_info_.rect);
 				const auto old_width  = saved_rect.right - saved_rect.left;
 				const auto old_height = saved_rect.bottom - saved_rect.top;
-				saved_rect.right      = saved_rect.left + MulDiv(static_cast<int>(old_width), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
-				saved_rect.bottom     = saved_rect.top + MulDiv(static_cast<int>(old_height), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
+				saved_rect.right	  = saved_rect.left + MulDiv(static_cast<int>(old_width), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
+				saved_rect.bottom	  = saved_rect.top + MulDiv(static_cast<int>(old_height), static_cast<int>(new_dpi), static_cast<int>(old_dpi));
 
 				window_info_.write_rect(saved_rect);
 			}
@@ -579,7 +603,7 @@ namespace gal::web_view::impl
 						SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 			}
 		}
-	}
-}
+	}// namespace v3
+}// namespace gal::web_view::impl
 
 #endif
