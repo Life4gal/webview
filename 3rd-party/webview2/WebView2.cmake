@@ -9,15 +9,23 @@ set(WIL_PATH ${CMAKE_BINARY_DIR}/packages/${WIL_NAME}.${WIL_VERSION})
 
 nuget_install(WebView2 ${${PROJECT_NAME_PREFIX}3RD_PARTY_PATH}/webview2/WebView2.config.in)
 
-target_include_directories(
-		${PROJECT_NAME}
-		SYSTEM
-		PUBLIC
-		#${WEBVIEW2_PATH}/include
-		#${WIL_PATH}/include
-		$<BUILD_INTERFACE:${WEBVIEW2_PATH}/include>
-		$<BUILD_INTERFACE:${WIL_PATH}/include>
-)
+if (WEBVIEW_PUBLIC_WEBVIEW2)
+	target_include_directories(
+			${PROJECT_NAME}
+			SYSTEM
+			PUBLIC
+			$<BUILD_INTERFACE:${WEBVIEW2_PATH}/include>
+			$<BUILD_INTERFACE:${WIL_PATH}/include>
+	)
+else ()
+	target_include_directories(
+			${PROJECT_NAME}
+			SYSTEM
+			PRIVATE
+			${WEBVIEW2_PATH}/include
+			${WIL_PATH}/include
+	)
+endif (WEBVIEW_PUBLIC_WEBVIEW2)
 
 if (WEBVIEW_STATIC_WEBVIEW2)
 	target_link_libraries(
