@@ -47,7 +47,7 @@ target_compile_options(
 		$<$<AND:$<CXX_COMPILER_ID:Clang>,$<STREQUAL:"${CMAKE_CXX_SIMULATE_ID}","MSVC">>:${UT_WARNINGS}>
 )
 
-#add_test(
-#		NAME ${PROJECT_NAME}
-#		COMMAND ${PROJECT_NAME}
-#)
+add_test(
+		NAME ${PROJECT_NAME}
+		COMMAND ${PROJECT_NAME}
+)
