@@ -27,7 +27,6 @@ y_combinator(F) -> y_combinator<std::decay_t<F>>;
 #define JS_RECEIVE_RESULT_METHOD_NAME "from_native"
 #define JS_SHUTDOWN_METHOD_NAME "shutdown"
 
-
 auto build_html() -> bool
 {
 	constexpr std::string_view head_part{
@@ -103,8 +102,11 @@ auto build_html() -> bool
 }
 
 #ifdef GAL_WEBVIEW_COMPILER_MSVC
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 auto __stdcall WinMain(
-		_In_ const HINSTANCE /* hInstance */,
+		_In_ HINSTANCE /* hInstance */,
 		_In_opt_ HINSTANCE /* hPrevInstance */,
 		_In_ LPSTR /* lpCmdLine */,
 		_In_ int/* nShowCmd */
